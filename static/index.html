@@ -1,0 +1,947 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>KriptoBot - Futures Trading Platform</title>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Space+Grotesk:wght@400;500;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-primary: #0a0a0f;
+            --bg-secondary: #12121a;
+            --bg-card: #1a1a25;
+            --accent: #00ff88;
+            --accent-dim: #00cc6a;
+            --danger: #ff4757;
+            --warning: #ffa502;
+            --text-primary: #ffffff;
+            --text-secondary: #8b8b9e;
+            --border: #2a2a3a;
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Space Grotesk', sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            min-height: 100vh;
+        }
+        
+        /* Login/Register Modal */
+        .auth-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.9);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+        
+        .auth-box {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 40px;
+            width: 100%;
+            max-width: 420px;
+        }
+        
+        .auth-box h1 {
+            font-size: 28px;
+            margin-bottom: 8px;
+            color: var(--accent);
+        }
+        
+        .auth-box p {
+            color: var(--text-secondary);
+            margin-bottom: 24px;
+        }
+        
+        .form-group {
+            margin-bottom: 16px;
+        }
+        
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            color: var(--text-secondary);
+            font-size: 14px;
+        }
+        
+        .form-group input {
+            width: 100%;
+            padding: 14px 16px;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            color: var(--text-primary);
+            font-size: 16px;
+            font-family: 'JetBrains Mono', monospace;
+            transition: border-color 0.3s;
+        }
+        
+        .form-group input:focus {
+            outline: none;
+            border-color: var(--accent);
+        }
+        
+        .btn {
+            width: 100%;
+            padding: 14px;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .btn-primary {
+            background: var(--accent);
+            color: var(--bg-primary);
+        }
+        
+        .btn-primary:hover {
+            background: var(--accent-dim);
+            transform: translateY(-2px);
+        }
+        
+        .btn-secondary {
+            background: transparent;
+            color: var(--text-secondary);
+            border: 1px solid var(--border);
+            margin-top: 12px;
+        }
+        
+        .btn-secondary:hover {
+            border-color: var(--accent);
+            color: var(--accent);
+        }
+        
+        .error-msg {
+            background: rgba(255,71,87,0.1);
+            border: 1px solid var(--danger);
+            color: var(--danger);
+            padding: 12px;
+            border-radius: 8px;
+            margin-bottom: 16px;
+            display: none;
+        }
+        
+        /* Dashboard */
+        .dashboard {
+            display: none;
+        }
+        
+        .navbar {
+            background: var(--bg-secondary);
+            border-bottom: 1px solid var(--border);
+            padding: 16px 32px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .navbar .logo {
+            font-size: 24px;
+            font-weight: 700;
+            color: var(--accent);
+        }
+        
+        .navbar .user-info {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+        
+        .navbar .username {
+            color: var(--text-secondary);
+        }
+        
+        .navbar .logout-btn {
+            padding: 8px 16px;
+            background: transparent;
+            border: 1px solid var(--danger);
+            color: var(--danger);
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .navbar .logout-btn:hover {
+            background: var(--danger);
+            color: white;
+        }
+        
+        .main-content {
+            padding: 32px;
+            max-width: 1600px;
+            margin: 0 auto;
+        }
+        
+        /* Stats Cards */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 24px;
+            margin-bottom: 32px;
+        }
+        
+        .stat-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 24px;
+        }
+        
+        .stat-card .label {
+            color: var(--text-secondary);
+            font-size: 14px;
+            margin-bottom: 8px;
+        }
+        
+        .stat-card .value {
+            font-size: 32px;
+            font-weight: 700;
+            font-family: 'JetBrains Mono', monospace;
+        }
+        
+        .stat-card .value.positive {
+            color: var(--accent);
+        }
+        
+        .stat-card .value.negative {
+            color: var(--danger);
+        }
+        
+        /* API Key Section */
+        .section {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 24px;
+            margin-bottom: 24px;
+        }
+        
+        .section-title {
+            font-size: 20px;
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .section-title .icon {
+            color: var(--accent);
+        }
+        
+        .api-form {
+            display: grid;
+            grid-template-columns: 1fr 1fr auto;
+            gap: 16px;
+            align-items: end;
+        }
+        
+        .api-form input {
+            padding: 12px 16px;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            color: var(--text-primary);
+            font-family: 'JetBrains Mono', monospace;
+        }
+        
+        .api-form input:focus {
+            outline: none;
+            border-color: var(--accent);
+        }
+        
+        .api-form button {
+            padding: 12px 24px;
+            background: var(--accent);
+            color: var(--bg-primary);
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+        }
+        
+        /* Trading Panel */
+        .trading-grid {
+            display: grid;
+            grid-template-columns: 1fr 400px;
+            gap: 24px;
+        }
+        
+        .pairs-list {
+            max-height: 500px;
+            overflow-y: auto;
+        }
+        
+        .pair-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 16px;
+            border-bottom: 1px solid var(--border);
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        
+        .pair-item:hover {
+            background: var(--bg-secondary);
+        }
+        
+        .pair-item.selected {
+            background: rgba(0,255,136,0.1);
+            border-left: 3px solid var(--accent);
+        }
+        
+        .pair-item .symbol {
+            font-weight: 600;
+            font-family: 'JetBrains Mono', monospace;
+        }
+        
+        .pair-item .price {
+            color: var(--text-secondary);
+            font-family: 'JetBrains Mono', monospace;
+        }
+        
+        /* Trade Form */
+        .trade-form {
+            padding: 20px;
+        }
+        
+        .trade-buttons {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+        
+        .trade-btn {
+            padding: 16px;
+            border: none;
+            border-radius: 8px;
+            font-size: 18px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .trade-btn.long {
+            background: var(--accent);
+            color: var(--bg-primary);
+        }
+        
+        .trade-btn.short {
+            background: var(--danger);
+            color: white;
+        }
+        
+        .trade-btn:hover {
+            transform: scale(1.02);
+        }
+        
+        .trade-input {
+            margin-bottom: 16px;
+        }
+        
+        .trade-input label {
+            display: block;
+            color: var(--text-secondary);
+            font-size: 14px;
+            margin-bottom: 6px;
+        }
+        
+        .trade-input input {
+            width: 100%;
+            padding: 12px;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            color: var(--text-primary);
+            font-family: 'JetBrains Mono', monospace;
+        }
+        
+        /* Positions Table */
+        .positions-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        
+        .positions-table th,
+        .positions-table td {
+            padding: 12px 16px;
+            text-align: left;
+            border-bottom: 1px solid var(--border);
+        }
+        
+        .positions-table th {
+            color: var(--text-secondary);
+            font-weight: 500;
+        }
+        
+        .positions-table .pnl-positive {
+            color: var(--accent);
+        }
+        
+        .positions-table .pnl-negative {
+            color: var(--danger);
+        }
+        
+        /* Loading */
+        .loading {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 40px;
+            color: var(--text-secondary);
+        }
+        
+        .spinner {
+            width: 24px;
+            height: 24px;
+            border: 3px solid var(--border);
+            border-top-color: var(--accent);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-right: 12px;
+        }
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        
+        /* Toast */
+        .toast {
+            position: fixed;
+            bottom: 24px;
+            right: 24px;
+            padding: 16px 24px;
+            background: var(--bg-card);
+            border: 1px solid var(--accent);
+            border-radius: 8px;
+            color: var(--accent);
+            display: none;
+            z-index: 1001;
+        }
+        
+        .toast.error {
+            border-color: var(--danger);
+            color: var(--danger);
+        }
+        
+        @media (max-width: 768px) {
+            .trading-grid {
+                grid-template-columns: 1fr;
+            }
+            .api-form {
+                grid-template-columns: 1fr;
+            }
+            .navbar {
+                padding: 12px 16px;
+            }
+            .main-content {
+                padding: 16px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Auth Section -->
+    <div class="auth-overlay" id="authOverlay">
+        <div class="auth-box">
+            <div id="loginForm">
+                <h1>🚀 KriptoBot</h1>
+                <p>Futures Trading Platform'a giriş yap</p>
+                <div class="error-msg" id="loginError"></div>
+                <div class="form-group">
+                    <label>Kullanıcı Adı</label>
+                    <input type="text" id="loginUsername" placeholder="kullanici_adi">
+                </div>
+                <div class="form-group">
+                    <label>Şifre</label>
+                    <input type="password" id="loginPassword" placeholder="••••••••">
+                </div>
+                <button class="btn btn-primary" onclick="login()">Giriş Yap</button>
+                <button class="btn btn-secondary" onclick="showRegister()">Hesap Oluştur</button>
+            </div>
+            
+            <div id="registerForm" style="display:none;">
+                <h1>🚀 Kayıt Ol</h1>
+                <p>Yeni hesap oluştur</p>
+                <div class="error-msg" id="registerError"></div>
+                <div class="form-group">
+                    <label>Kullanıcı Adı</label>
+                    <input type="text" id="regUsername" placeholder="kullanici_adi">
+                </div>
+                <div class="form-group">
+                    <label>Email</label>
+                    <input type="email" id="regEmail" placeholder="email@example.com">
+                </div>
+                <div class="form-group">
+                    <label>Şifre</label>
+                    <input type="password" id="regPassword" placeholder="••••••••">
+                </div>
+                <button class="btn btn-primary" onclick="register()">Kayıt Ol</button>
+                <button class="btn btn-secondary" onclick="showLogin()">Giriş Yap</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Dashboard -->
+    <div class="dashboard" id="dashboard">
+        <nav class="navbar">
+            <div class="logo">🚀 KriptoBot</div>
+            <div class="user-info">
+                <span class="username" id="displayUsername">@user</span>
+                <button class="logout-btn" onclick="logout()">Çıkış</button>
+            </div>
+        </nav>
+        
+        <div class="main-content">
+            <!-- Stats -->
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="label">💰 Bakiye</div>
+                    <div class="value" id="balanceValue">0.00 USDT</div>
+                </div>
+                <div class="stat-card">
+                    <div class="label">📊 Açık Pozisyon</div>
+                    <div class="value" id="positionCount">0</div>
+                </div>
+                <div class="stat-card">
+                    <div class="label">📈 Toplam PnL</div>
+                    <div class="value" id="totalPnl">0.00 USDT</div>
+                </div>
+                <div class="stat-card">
+                    <div class="label">🎯 Parite Sayısı</div>
+                    <div class="value" id="pairCount">60</div>
+                </div>
+            </div>
+            
+            <!-- API Key Section -->
+            <div class="section" id="apiKeySection">
+                <h3 class="section-title"><span class="icon">🔑</span> Bybit API Bağlantısı</h3>
+                <div class="api-form">
+                    <div>
+                        <label>API Key</label>
+                        <input type="text" id="apiKeyInput" placeholder="API Key">
+                    </div>
+                    <div>
+                        <label>API Secret</label>
+                        <input type="password" id="apiSecretInput" placeholder="API Secret">
+                    </div>
+                    <button onclick="saveApiKey()">Bağla</button>
+                </div>
+                <p style="color: var(--text-secondary); margin-top: 12px; font-size: 14px;">
+                    ⚠️ Bybit hesabından API key oluşturun ve buraya girin.
+                </p>
+            </div>
+            
+            <!-- Trading Section -->
+            <div class="trading-grid">
+                <div class="section">
+                    <h3 class="section-title"><span class="icon">📊</span> Pariteler (60)</h3>
+                    <div class="pairs-list" id="pairsList">
+                        <div class="loading">
+                            <div class="spinner"></div>
+                            Yükleniyor...
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="section">
+                    <h3 class="section-title"><span class="icon">⚡</span> İşlem Aç</h3>
+                    <div class="trade-form">
+                        <div style="text-align:center; margin-bottom:20px;">
+                            <span id="selectedPair" style="font-size:24px; font-weight:700; color:var(--accent);">BTCUSDT</span>
+                            <br>
+                            <span id="selectedPrice" style="color:var(--text-secondary);">$0.00</span>
+                        </div>
+                        
+                        <div class="trade-input">
+                            <label>Miktar (USDT)</label>
+                            <input type="number" id="tradeAmount" placeholder="10">
+                        </div>
+                        
+                        <div class="trade-input">
+                            <label>Stop Loss</label>
+                            <input type="number" id="stopLoss" placeholder="Opsiyonel">
+                        </div>
+                        
+                        <div class="trade-input">
+                            <label>Take Profit</label>
+                            <input type="number" id="takeProfit" placeholder="Opsiyonel">
+                        </div>
+                        
+                        <div class="trade-buttons">
+                            <button class="trade-btn long" onclick="openTrade('LONG')">📈 LONG</button>
+                            <button class="trade-btn short" onclick="openTrade('SHORT')">📉 SHORT</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Positions -->
+            <div class="section">
+                <h3 class="section-title"><span class="icon">📋</span> Açık Pozisyonlar</h3>
+                <table class="positions-table">
+                    <thead>
+                        <tr>
+                            <th>Parite</th>
+                            <th>Yön</th>
+                            <th>Miktar</th>
+                            <th>Giriş</th>
+                            <th>Güncel</th>
+                            <th>PnL</th>
+                        </tr>
+                    </thead>
+                    <tbody id="positionsBody">
+                        <tr>
+                            <td colspan="6" style="text-align:center; color:var(--text-secondary);">
+                                Pozisyon yok
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Toast -->
+    <div class="toast" id="toast"></div>
+    
+    <script>
+        const API_URL = '';
+        let token = localStorage.getItem('token');
+        let selectedPair = 'BTCUSDT';
+        let prices = {};
+        
+        // Check auth on load
+        if (token) {
+            checkAuth();
+        }
+        
+        async function checkAuth() {
+            try {
+                const res = await fetch(`${API_URL}/api/me`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                if (res.ok) {
+                    const data = await res.json();
+                    showDashboard(data.username);
+                } else {
+                    localStorage.removeItem('token');
+                    token = null;
+                }
+            } catch (e) {
+                console.error(e);
+            }
+        }
+        
+        function showLogin() {
+            document.getElementById('loginForm').style.display = 'block';
+            document.getElementById('registerForm').style.display = 'none';
+        }
+        
+        function showRegister() {
+            document.getElementById('loginForm').style.display = 'none';
+            document.getElementById('registerForm').style.display = 'block';
+        }
+        
+        async function login() {
+            const username = document.getElementById('loginUsername').value;
+            const password = document.getElementById('loginPassword').value;
+            
+            try {
+                const res = await fetch(`${API_URL}/api/login`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username, password })
+                });
+                
+                const data = await res.json();
+                
+                if (res.ok) {
+                    token = data.token;
+                    localStorage.setItem('token', token);
+                    showDashboard(data.user.username);
+                } else {
+                    showError('loginError', data.detail);
+                }
+            } catch (e) {
+                showError('loginError', 'Bağlantı hatası');
+            }
+        }
+        
+        async function register() {
+            const username = document.getElementById('regUsername').value;
+            const email = document.getElementById('regEmail').value;
+            const password = document.getElementById('regPassword').value;
+            
+            try {
+                const res = await fetch(`${API_URL}/api/register`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username, email, password })
+                });
+                
+                const data = await res.json();
+                
+                if (res.ok) {
+                    token = data.token;
+                    localStorage.setItem('token', token);
+                    showDashboard(data.user.username);
+                } else {
+                    showError('registerError', data.detail);
+                }
+            } catch (e) {
+                showError('registerError', 'Bağlantı hatası');
+            }
+        }
+        
+        function logout() {
+            localStorage.removeItem('token');
+            token = null;
+            document.getElementById('authOverlay').style.display = 'flex';
+            document.getElementById('dashboard').style.display = 'none';
+        }
+        
+        function showError(id, msg) {
+            const el = document.getElementById(id);
+            el.textContent = msg;
+            el.style.display = 'block';
+        }
+        
+        function showDashboard(username) {
+            document.getElementById('authOverlay').style.display = 'none';
+            document.getElementById('dashboard').style.display = 'block';
+            document.getElementById('displayUsername').textContent = '@' + username;
+            loadData();
+        }
+        
+        async function loadData() {
+            loadPairs();
+            loadBalance();
+            loadPositions();
+        }
+        
+        async function loadPairs() {
+            try {
+                const res = await fetch(`${API_URL}/api/pairs`);
+                const data = await res.json();
+                
+                document.getElementById('pairCount').textContent = data.count;
+                
+                // Load prices
+                const pricesRes = await fetch(`${API_URL}/api/prices`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                
+                if (pricesRes.ok) {
+                    const pricesData = await pricesRes.json();
+                    prices = pricesData.prices;
+                }
+                
+                let html = '';
+                data.pairs.forEach(pair => {
+                    const price = prices[pair] || 0;
+                    const priceStr = price > 100 ? price.toFixed(2) : price.toFixed(4);
+                    html += `
+                        <div class="pair-item ${pair === selectedPair ? 'selected' : ''}" onclick="selectPair('${pair}')">
+                            <span class="symbol">${pair}</span>
+                            <span class="price">$${priceStr}</span>
+                        </div>
+                    `;
+                });
+                
+                document.getElementById('pairsList').innerHTML = html;
+                updateSelectedPair();
+                
+            } catch (e) {
+                console.error(e);
+            }
+        }
+        
+        function selectPair(pair) {
+            selectedPair = pair;
+            document.querySelectorAll('.pair-item').forEach(el => {
+                el.classList.remove('selected');
+                if (el.querySelector('.symbol').textContent === pair) {
+                    el.classList.add('selected');
+                }
+            });
+            updateSelectedPair();
+        }
+        
+        function updateSelectedPair() {
+            document.getElementById('selectedPair').textContent = selectedPair;
+            const price = prices[selectedPair] || 0;
+            document.getElementById('selectedPrice').textContent = '$' + price.toLocaleString();
+        }
+        
+        async function loadBalance() {
+            try {
+                const res = await fetch(`${API_URL}/api/balance`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                
+                if (res.ok) {
+                    const data = await res.json();
+                    document.getElementById('balanceValue').textContent = data.balance.toFixed(2) + ' USDT';
+                }
+            } catch (e) {
+                console.error(e);
+            }
+        }
+        
+        async function loadPositions() {
+            try {
+                const res = await fetch(`${API_URL}/api/positions`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                
+                if (res.ok) {
+                    const data = await res.json();
+                    const positions = data.positions;
+                    
+                    document.getElementById('positionCount').textContent = positions.length;
+                    
+                    let totalPnl = 0;
+                    let html = '';
+                    
+                    if (positions.length === 0) {
+                        html = '<tr><td colspan="6" style="text-align:center; color:var(--text-secondary);">Pozisyon yok</td></tr>';
+                    } else {
+                        positions.forEach(pos => {
+                            const pnl = parseFloat(pos.unrealized_pnl);
+                            totalPnl += pnl;
+                            const pnlClass = pnl >= 0 ? 'pnl-positive' : 'pnl-negative';
+                            const pnlSign = pnl >= 0 ? '+' : '';
+                            
+                            html += `
+                                <tr>
+                                    <td>${pos.symbol}</td>
+                                    <td>${pos.side}</td>
+                                    <td>${pos.size}</td>
+                                    <td>$${parseFloat(pos.entry_price).toLocaleString()}</td>
+                                    <td>$${parseFloat(pos.mark_price).toLocaleString()}</td>
+                                    <td class="${pnlClass}">${pnlSign}${pnl.toFixed(2)} USDT</td>
+                                </tr>
+                            `;
+                        });
+                    }
+                    
+                    document.getElementById('positionsBody').innerHTML = html;
+                    
+                    const pnlEl = document.getElementById('totalPnl');
+                    pnlEl.textContent = (totalPnl >= 0 ? '+' : '') + totalPnl.toFixed(2) + ' USDT';
+                    pnlEl.className = 'value ' + (totalPnl >= 0 ? 'positive' : 'negative');
+                }
+            } catch (e) {
+                console.error(e);
+            }
+        }
+        
+        async function saveApiKey() {
+            const apiKey = document.getElementById('apiKeyInput').value;
+            const apiSecret = document.getElementById('apiSecretInput').value;
+            
+            if (!apiKey || !apiSecret) {
+                showToast('API Key ve Secret gerekli!', true);
+                return;
+            }
+            
+            try {
+                const res = await fetch(`${API_URL}/api/keys`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify({ api_key: apiKey, api_secret: apiSecret })
+                });
+                
+                const data = await res.json();
+                
+                if (res.ok) {
+                    showToast('✅ API Key başarıyla bağlandı!');
+                    document.getElementById('apiKeyInput').value = '';
+                    document.getElementById('apiSecretInput').value = '';
+                    loadData();
+                } else {
+                    showToast(data.detail, true);
+                }
+            } catch (e) {
+                showToast('Bağlantı hatası', true);
+            }
+        }
+        
+        async function openTrade(side) {
+            const amount = document.getElementById('tradeAmount').value;
+            const stopLoss = document.getElementById('stopLoss').value;
+            const takeProfit = document.getElementById('takeProfit').value;
+            
+            try {
+                const res = await fetch(`${API_URL}/api/trade`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify({
+                        symbol: selectedPair,
+                        side: side,
+                        amount: amount ? parseFloat(amount) : null,
+                        stop_loss: stopLoss ? parseFloat(stopLoss) : null,
+                        take_profit: takeProfit ? parseFloat(takeProfit) : null
+                    })
+                });
+                
+                const data = await res.json();
+                
+                if (res.ok && data.success) {
+                    showToast(`✅ ${side} pozisyon açıldı: ${selectedPair}`);
+                    loadData();
+                } else {
+                    showToast(data.detail || data.error, true);
+                }
+            } catch (e) {
+                showToast('Bağlantı hatası', true);
+            }
+        }
+        
+        function showToast(msg, isError = false) {
+            const toast = document.getElementById('toast');
+            toast.textContent = msg;
+            toast.className = 'toast' + (isError ? ' error' : '');
+            toast.style.display = 'block';
+            
+            setTimeout(() => {
+                toast.style.display = 'none';
+            }, 3000);
+        }
+        
+        // Refresh data every 30 seconds
+        setInterval(() => {
+            if (token) {
+                loadPairs();
+                loadBalance();
+                loadPositions();
+            }
+        }, 30000);
+    </script>
+</body>
+</html>
+
