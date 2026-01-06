@@ -279,6 +279,34 @@ class BybitTrader:
                 return float(tickers[0].get('lastPrice', 0))
         return 0.0
     
+    def get_qty_step(self, symbol: str) -> tuple:
+        """Sembol için miktar adımı ve minimum miktarı al"""
+        # Yaygın coinler için miktar kuralları
+        qty_rules = {
+            'BTCUSDT': (0.001, 3),   # min 0.001, 3 decimal
+            'ETHUSDT': (0.01, 2),    # min 0.01, 2 decimal
+            'BNBUSDT': (0.01, 2),
+            'SOLUSDT': (0.1, 1),
+            'XRPUSDT': (1, 0),       # min 1, integer
+            'DOGEUSDT': (1, 0),
+            'ADAUSDT': (1, 0),
+            'AVAXUSDT': (0.1, 1),
+            'DOTUSDT': (0.1, 1),
+            'LINKUSDT': (0.1, 1),
+            'POLUSDT': (1, 0),
+            'SHIBUSDT': (1, 0),
+            'LTCUSDT': (0.1, 1),
+            'ATOMUSDT': (0.1, 1),
+            'UNIUSDT': (0.1, 1),
+            'NEARUSDT': (0.1, 1),
+            'APTUSDT': (0.1, 1),
+            'ARBUSDT': (1, 0),
+            'OPUSDT': (0.1, 1),
+            'SUIUSDT': (1, 0),  # Integer only
+            'PEPEUSDT': (1, 0),
+        }
+        return qty_rules.get(symbol, (0.1, 1))  # Default
+    
     def open_long(self, symbol: str, usdt_amount: float = None,
                   stop_loss: float = None, take_profit: float = None) -> Dict:
         """Long pozisyon aç"""
@@ -293,8 +321,16 @@ class BybitTrader:
         if price == 0:
             return {'success': False, 'error': 'Fiyat alınamadı'}
         
+        # Miktar kurallarını al
+        min_qty, decimals = self.get_qty_step(symbol)
+        
         # Kontrat miktarı hesapla (USDT / fiyat * kaldıraç)
-        qty = round((usdt_amount * self.leverage) / price, 3)
+        raw_qty = (usdt_amount * self.leverage) / price
+        qty = max(min_qty, round(raw_qty, decimals))
+        
+        # Integer gerektiren coinler için
+        if decimals == 0:
+            qty = int(qty)
         
         logger.info(f"LONG açılıyor: {symbol} - {qty} kontrat @ {price} ({self.leverage}x)")
         
@@ -321,7 +357,16 @@ class BybitTrader:
         if price == 0:
             return {'success': False, 'error': 'Fiyat alınamadı'}
         
-        qty = round((usdt_amount * self.leverage) / price, 3)
+        # Miktar kurallarını al
+        min_qty, decimals = self.get_qty_step(symbol)
+        
+        # Kontrat miktarı hesapla
+        raw_qty = (usdt_amount * self.leverage) / price
+        qty = max(min_qty, round(raw_qty, decimals))
+        
+        # Integer gerektiren coinler için
+        if decimals == 0:
+            qty = int(qty)
         
         logger.info(f"SHORT açılıyor: {symbol} - {qty} kontrat @ {price} ({self.leverage}x)")
         

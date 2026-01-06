@@ -13,7 +13,7 @@ import config
 
 # Gemini AI kurulumu
 genai.configure(api_key=config.GEMINI_API_KEY)
-model = genai.GenerativeModel('gemini-pro')
+model = genai.GenerativeModel('gemini-2.5-flash-lite')
 
 # Logger ayarla
 logger.add("auto_trader.log", rotation="1 day", retention="7 days")

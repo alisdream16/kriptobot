@@ -29,27 +29,27 @@ TELEGRAM_CHANNELS = [
 ]
 
 # ==================== GEMINI AI ====================
-GEMINI_API_KEY = "AIzaSyARBbPXe9VOFBrtc7uORp2SogIpfX29UKQ"
-GEMINI_MODEL = "gemini-pro"
+GEMINI_API_KEY = "AIzaSyBo83RBvYCJbKahS0l3qBJ7RAr2XCxOVxE"
+GEMINI_MODEL = "gemini-1.5-flash"
 
 # ==================== SUPABASE ====================
 SUPABASE_URL = "postgresql://postgres.ldimzjflhvtpeqacbjcm:KriptoBot16@aws-1-ap-south-1.pooler.supabase.com:5432/postgres"
 
 # ==================== TİCARET AYARLARI ====================
-# İşlem yapılacak pariteler (60 parite)
+# İşlem yapılacak pariteler (60 parite - Bybit destekli)
 TRADING_PAIRS = [
     # Top 20
     "BTCUSDT", "ETHUSDT", "BNBUSDT", "SOLUSDT", "XRPUSDT",
     "DOGEUSDT", "ADAUSDT", "AVAXUSDT", "DOTUSDT", "LINKUSDT",
-    "MATICUSDT", "SHIBUSDT", "LTCUSDT", "ATOMUSDT", "UNIUSDT",
+    "POLUSDT", "SHIBUSDT", "LTCUSDT", "ATOMUSDT", "UNIUSDT",
     "NEARUSDT", "APTUSDT", "ARBUSDT", "OPUSDT", "SUIUSDT",
     # 21-40
     "PEPEUSDT", "FILUSDT", "ICPUSDT", "HBARUSDT", "VETUSDT",
-    "MKRUSDT", "AAVEUSDT", "GRTUSDT", "INJUSDT", "RNDRUSDT",
+    "MKRUSDT", "AAVEUSDT", "GRTUSDT", "INJUSDT", "RENDERUSDT",
     "FTMUSDT", "THETAUSDT", "ALGOUSDT", "FLOWUSDT", "XTZUSDT",
     "AXSUSDT", "SANDUSDT", "MANAUSDT", "GALAUSDT", "APEUSDT",
     # 41-60
-    "LDOUSDT", "CROUSDT", "QNTUSDT", "EGLDUSDT", "EOSUSDT",
+    "LDOUSDT", "CRVUSDT", "QNTUSDT", "EGLDUSDT", "EOSUSDT",
     "CFXUSDT", "STXUSDT", "IMXUSDT", "RUNEUSDT", "MINAUSDT",
     "KAVAUSDT", "SNXUSDT", "ZECUSDT", "NEOUSDT", "IOTAUSDT",
     "COMPUSDT", "1INCHUSDT", "ENSUSDT", "GMXUSDT", "WOOUSDT",

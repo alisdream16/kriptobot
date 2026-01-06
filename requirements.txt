@@ -20,7 +20,7 @@ telethon==1.34.0
 python-telegram-bot==20.7
 
 # Google Gemini AI
-google-generativeai==0.3.2
+google-generativeai>=0.8.0
 
 # Veritabanı
 psycopg2-binary==2.9.9
