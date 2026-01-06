@@ -341,6 +341,36 @@ async def close_all_positions(payload: dict = Depends(verify_token)):
     results = trader.close_all_positions()
     return {"results": results}
 
+# ==================== AUTO TRADER ====================
+import threading
+auto_trader_running = False
+auto_trader_thread = None
+
+def run_auto_trader_background():
+    """Background'da auto trader çalıştır"""
+    from auto_trader import AutoTrader
+    trader = AutoTrader()
+    trader.start()
+
+@app.post("/api/auto-trader/start")
+async def start_auto_trader(payload: dict = Depends(verify_token)):
+    """Otomatik trader'ı başlat"""
+    global auto_trader_running, auto_trader_thread
+    
+    if auto_trader_running:
+        return {"success": False, "message": "Auto trader zaten çalışıyor"}
+    
+    auto_trader_thread = threading.Thread(target=run_auto_trader_background, daemon=True)
+    auto_trader_thread.start()
+    auto_trader_running = True
+    
+    return {"success": True, "message": "Auto trader başlatıldı"}
+
+@app.get("/api/auto-trader/status")
+async def get_auto_trader_status():
+    """Auto trader durumu"""
+    return {"running": auto_trader_running}
+
 # ==================== PUBLIC ENDPOINTS ====================
 @app.get("/api/pairs")
 async def get_trading_pairs():
