@@ -240,12 +240,30 @@ YANIT FORMATI (sadece JSON, başka bir şey yazma):
         logger.info(f"✅ ANALİZ TAMAMLANDI - Sonraki: 1 saat sonra")
         logger.info("=" * 50 + "\n")
     
+    def has_open_positions(self) -> bool:
+        """Açık pozisyon var mı kontrol et"""
+        positions = self.trader.get_all_positions()
+        return len(positions) > 0
+    
+    def smart_analysis(self):
+        """Akıllı analiz - pozisyon durumuna göre"""
+        has_positions = self.has_open_positions()
+        
+        if not has_positions:
+            logger.info("📭 Açık pozisyon yok - Yeni pozisyon aranıyor...")
+            self.run_analysis()
+        else:
+            logger.info("📊 Açık pozisyon var - Saatlik analiz bekleniyor")
+    
     def start(self):
         """Botu başlat"""
         logger.info("""
 ╔══════════════════════════════════════════════════════════╗
 ║          🤖 KRİPTOBOT - OTOMATİK TRADER                 ║
 ║          Gemini AI ile Akıllı Trading                    ║
+║                                                          ║
+║  📭 Pozisyon yoksa: Her 15 dakikada analiz              ║
+║  📊 Pozisyon varsa: Her saat analiz                     ║
 ╚══════════════════════════════════════════════════════════╝
 """)
         
@@ -253,19 +271,32 @@ YANIT FORMATI (sadece JSON, başka bir şey yazma):
         balance = self.trader.get_available_balance()
         logger.info(f"💰 Başlangıç Bakiyesi: {balance} USDT")
         logger.info(f"📊 İzlenen Parite: {len(self.trading_pairs)}")
-        logger.info(f"⏰ Analiz Aralığı: Her saat başı")
         
         # İlk analizi hemen yap
         logger.info("\n🚀 İlk analiz başlatılıyor...\n")
         self.run_analysis()
         
-        # Her saat başı çalıştır
+        # Her saat başı analiz (pozisyon varsa)
         schedule.every().hour.at(":00").do(self.run_analysis)
         
+        # Son analiz zamanı
+        last_no_position_check = time.time()
+        
         # Döngü
-        logger.info("⏳ Zamanlayıcı aktif - Her saat analiz yapılacak")
+        logger.info("⏳ Zamanlayıcı aktif")
         while True:
             schedule.run_pending()
+            
+            # Açık pozisyon yoksa her 15 dakikada analiz
+            if not self.has_open_positions():
+                if time.time() - last_no_position_check >= 900:  # 15 dakika = 900 saniye
+                    logger.info("\n⏰ 15 dakika geçti, pozisyon yok - Analiz başlatılıyor...")
+                    self.run_analysis()
+                    last_no_position_check = time.time()
+            else:
+                # Pozisyon varsa timer'ı sıfırla
+                last_no_position_check = time.time()
+            
             time.sleep(60)  # Her dakika kontrol
 
 
