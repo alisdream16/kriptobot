@@ -41,23 +41,33 @@ class PositionManager:
             logger.info(f"📌 Yeni pozisyon takibe alındı: {pos['symbol']} {pos['side']} @ {entry_price}")
         return self.positions_state[key]
     
-    def calculate_pnl_percent(self, entry_price: float, current_price: float, side: str) -> float:
-        """PnL yüzdesini hesapla"""
+    def calculate_pnl_percent(self, entry_price: float, current_price: float, side: str, leverage: int = 20) -> float:
+        """PnL yüzdesini hesapla (kaldıraçlı)"""
         if entry_price == 0:
             return 0
         
         if side == 'Buy':  # Long
-            return ((current_price - entry_price) / entry_price) * 100
+            spot_change = ((current_price - entry_price) / entry_price) * 100
         else:  # Short
-            return ((entry_price - current_price) / entry_price) * 100
+            spot_change = ((entry_price - current_price) / entry_price) * 100
+        
+        # Kaldıraç ile çarp
+        return spot_change * leverage
     
-    def calculate_sl_price(self, entry_price: float, sl_level: float, side: str) -> float:
-        """SL fiyatını hesapla"""
+    def calculate_sl_price(self, entry_price: float, sl_level: float, side: str, leverage: int = 20) -> float:
+        """
+        SL fiyatını hesapla
+        sl_level: Kaldıraçlı kâr yüzdesi (örn: 20 = %20 kaldıraçlı kâr)
+        Spot değişim = sl_level / leverage
+        """
+        # Kaldıraçlı kârı spot değişime çevir
+        spot_change_percent = sl_level / leverage
+        
         if side == 'Buy':  # Long
-            # SL seviyesi 0 ise entry, 20 ise %20 kârda, vs.
-            return entry_price * (1 + sl_level / 100)
+            # SL seviyesi 0 ise entry, 20 ise %20 kaldıraçlı kârda (=%1 spot), vs.
+            return entry_price * (1 + spot_change_percent / 100)
         else:  # Short
-            return entry_price * (1 - sl_level / 100)
+            return entry_price * (1 - spot_change_percent / 100)
     
     def update_stop_loss(self, symbol: str, new_sl_price: float) -> bool:
         """Stop loss güncelle"""
@@ -95,8 +105,11 @@ class PositionManager:
                 if entry_price == 0:
                     continue
                 
-                # PnL hesapla
-                pnl_percent = self.calculate_pnl_percent(entry_price, current_price, side)
+                # Kaldıracı al
+                leverage = int(float(pos.get('leverage', 20)))
+                
+                # PnL hesapla (kaldıraçlı)
+                pnl_percent = self.calculate_pnl_percent(entry_price, current_price, side, leverage)
                 
                 # En yüksek PnL'i güncelle
                 if pnl_percent > state['highest_pnl_percent']:
@@ -113,13 +126,13 @@ class PositionManager:
                     old_sl_level = state['current_sl_level']
                     new_sl_level = target_sl_level
                     
-                    # Yeni SL fiyatını hesapla
-                    new_sl_price = self.calculate_sl_price(entry_price, new_sl_level, side)
+                    # Yeni SL fiyatını hesapla (kaldıraç dahil)
+                    new_sl_price = self.calculate_sl_price(entry_price, new_sl_level, side, leverage)
                     
                     # Eğer %20'ye ulaştıysa ve SL henüz entry'de değilse
                     if old_sl_level == 0 and new_sl_level >= self.trailing_step:
                         # İlk olarak SL'yi entry'ye çek
-                        sl_entry = self.calculate_sl_price(entry_price, 0, side)
+                        sl_entry = self.calculate_sl_price(entry_price, 0, side, leverage)
                         logger.info(f"""
 🔒 {symbol} - SL ENTRY'YE ÇEKİLDİ!
    PnL: {pnl_percent:.2f}%
