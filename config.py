@@ -21,6 +21,7 @@ LBANK_FUTURES_URL = "https://fapi.lbank.info"
 TELEGRAM_API_ID = "30699278"
 TELEGRAM_API_HASH = "414fce59162a6c4cd114e8d4397ec896"
 TELEGRAM_PHONE = "+905384877162"
+TELEGRAM_PASSWORD = ""  # 2FA şifren varsa buraya yaz
 
 # İzlenecek kanallar (t.me/ linkinden sonraki kısım)
 TELEGRAM_CHANNELS = [

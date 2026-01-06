@@ -235,7 +235,10 @@ Eğer sinyal değilse:
 ╚══════════════════════════════════════════════════════════════╝
 """)
         
-        await client.start(phone=config.TELEGRAM_PHONE)
+        await client.start(
+            phone=config.TELEGRAM_PHONE,
+            password=config.TELEGRAM_PASSWORD if hasattr(config, 'TELEGRAM_PASSWORD') and config.TELEGRAM_PASSWORD else None
+        )
         logger.info("✅ Telegram'a bağlandı")
         
         # Kanalları bul ve dinle
