@@ -22,10 +22,11 @@ TELEGRAM_API_ID = "30699278"
 TELEGRAM_API_HASH = "414fce59162a6c4cd114e8d4397ec896"
 TELEGRAM_PHONE = os.getenv("TELEGRAM_PHONE", "+90")  # Telefon numaranızı ekleyin
 
-# İzlenecek kanallar
+# İzlenecek kanallar (@ olmadan kanal adı veya t.me linkinden sonraki kısım)
 TELEGRAM_CHANNELS = [
-    "SİLVER TRADE VIP",       # Silver Trade VIP
-    "Balina Sinyalleri",      # Balina Sinyalleri
+    "silvertrade",            # Silver Trade ana kanal
+    "silvertrade_vip",        # Silver Trade VIP
+    "SİLVER TRADE VIP",       # Alternatif isim
 ]
 
 # ==================== GEMINI AI ====================

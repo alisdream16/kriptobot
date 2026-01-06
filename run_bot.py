@@ -1,8 +1,9 @@
 """
 KriptoBot - Ana Çalıştırıcı
-Auto Trader + Position Manager birlikte çalışır
+Auto Trader + Position Manager + Telegram Signals birlikte çalışır
 """
 import threading
+import asyncio
 import time
 from loguru import logger
 
@@ -23,16 +24,35 @@ def run_position_manager():
     manager.run(interval_seconds=10)
 
 
+def run_telegram_signals():
+    """Telegram sinyal okuyucuyu çalıştır"""
+    try:
+        from telegram_signals import TelegramSignalReader
+        import asyncio
+        
+        async def start_reader():
+            reader = TelegramSignalReader()
+            await reader.start()
+        
+        # Yeni event loop oluştur ve çalıştır
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+        loop.run_until_complete(start_reader())
+    except Exception as e:
+        logger.error(f"❌ Telegram sinyal okuyucu hatası: {e}")
+
+
 def main():
     logger.info("""
 ╔══════════════════════════════════════════════════════════════╗
-║                    🚀 KRİPTOBOT v1.0                        ║
+║                    🚀 KRİPTOBOT v2.0                        ║
 ║                                                              ║
 ║  📊 Gemini AI ile Her Saat Analiz                           ║
+║  📡 Telegram Kanallarından Sinyal Okuma                     ║
 ║  📈 Otomatik LONG/SHORT İşlem Açma                          ║
-║  🎯 5 Kademeli TP (%1, %2, %3, %4, %5)                      ║
-║  🛡️ Her TP'de %20 Pozisyon Kapatma                          ║
-║  🔒 İlk TP Sonrası SL Entry'ye Çekilir                      ║
+║  🎯 Trailing Stop (%20 adımlarla)                           ║
+║  🛡️ %20 Kârda SL Entry'ye Çekilir                           ║
+║  🔒 Her %20 Artışta SL Yukarı Taşınır                       ║
 ╚══════════════════════════════════════════════════════════════╝
 """)
     
@@ -48,6 +68,11 @@ def main():
     at_thread = threading.Thread(target=run_auto_trader, daemon=True)
     at_thread.start()
     logger.info("✅ Auto Trader başlatıldı (her saat)")
+    
+    # Telegram Sinyal Okuyucu
+    tg_thread = threading.Thread(target=run_telegram_signals, daemon=True)
+    tg_thread.start()
+    logger.info("✅ Telegram Sinyal Okuyucu başlatıldı (Silver Trade)")
     
     logger.info("\n🟢 Bot aktif! Ctrl+C ile durdurun.\n")
     
