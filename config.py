@@ -20,13 +20,13 @@ LBANK_FUTURES_URL = "https://fapi.lbank.info"
 # ==================== TELEGRAM ====================
 TELEGRAM_API_ID = "30699278"
 TELEGRAM_API_HASH = "414fce59162a6c4cd114e8d4397ec896"
-TELEGRAM_PHONE = os.getenv("TELEGRAM_PHONE", "+90")  # Telefon numaranızı ekleyin
+TELEGRAM_PHONE = "+905384877162"
 
-# İzlenecek kanallar (@ olmadan kanal adı veya t.me linkinden sonraki kısım)
+# İzlenecek kanallar (t.me/ linkinden sonraki kısım)
 TELEGRAM_CHANNELS = [
-    "silvertrade",            # Silver Trade ana kanal
-    "silvertrade_vip",        # Silver Trade VIP
-    "SİLVER TRADE VIP",       # Alternatif isim
+    "kazan_7234",             # Silver Trade ana kanal
+    "SilverTradeVIP",         # Silver Trade VIP (büyük küçük harf önemli)
+    "BalinaSinyalleri",       # Balina Sinyalleri
 ]
 
 # ==================== GEMINI AI ====================
