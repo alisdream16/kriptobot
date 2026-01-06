@@ -117,7 +117,8 @@ class BybitAPI:
     def place_order(self, symbol: str, side: str, qty: str, 
                     order_type: str = 'Market', price: str = None,
                     stop_loss: str = None, take_profit: str = None,
-                    leverage: int = None, category: str = 'linear') -> Dict:
+                    leverage: int = None, category: str = 'linear',
+                    reduce_only: bool = False) -> Dict:
         """
         Emir ver
         
@@ -152,6 +153,9 @@ class BybitAPI:
         
         if take_profit:
             params['takeProfit'] = str(take_profit)
+        
+        if reduce_only:
+            params['reduceOnly'] = True
         
         logger.info(f"Emir veriliyor: {symbol} {side} {qty}")
         return self._request('POST', '/v5/order/create', params)

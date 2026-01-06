@@ -167,8 +167,8 @@ YANIT FORMATI (sadece JSON, başka bir şey yazma):
                 stop_loss = round(price * (1 + sl_percent/100), 2)
                 take_profit = round(price * (1 - tp_percent/100), 2)
             
-            # Pozisyon büyüklüğü - bakiyenin %5'i
-            position_size = balance * 0.05
+            # Pozisyon büyüklüğü - config'den (%4)
+            position_size = balance * (config.RISK_PERCENTAGE / 100)
             
             logger.info(f"""
 🎯 SİNYAL ALINDI:

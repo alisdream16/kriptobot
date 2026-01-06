@@ -56,7 +56,7 @@ TRADING_PAIRS = [
 ]
 
 # Risk Yönetimi
-RISK_PERCENTAGE = 2.0          # Kasanın %2'si ile işlem
+RISK_PERCENTAGE = 4.0          # Kasanın %4'ü ile işlem
 LEVERAGE = 20                   # 20x kaldıraç
 MIN_DAILY_PROFIT_TARGET = 10.0  # Günlük minimum %10 hedef
 
