@@ -63,7 +63,16 @@ class BybitAPI:
             else:
                 response = self.session.post(url, data=json.dumps(params), headers=headers, timeout=30)
             
-            data = response.json()
+            # Response boş mu kontrol et
+            if not response.text:
+                logger.error(f"API boş yanıt döndü: {url}")
+                return {'success': False, 'error': 'Empty response from API'}
+            
+            try:
+                data = response.json()
+            except json.JSONDecodeError as e:
+                logger.error(f"JSON parse hatası: {e} - Response: {response.text[:200]}")
+                return {'success': False, 'error': f'JSON parse error: {e}'}
             
             if data.get('retCode') != 0:
                 logger.error(f"Bybit API Hatası: {data.get('retCode')} - {data.get('retMsg')}")
