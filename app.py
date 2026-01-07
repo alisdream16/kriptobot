@@ -363,11 +363,14 @@ def run_auto_trader_background():
         auto_trader_running = False
 
 def run_position_manager_background():
-    """Background'da position manager çalıştır - DEVRE DIŞI (n8n yönetecek)"""
-    # Position management artık n8n tarafından yapılacak
-    # Railway'den Bybit API'ye erişim engelli
-    logger.info("📊 Position Manager DEVRE DIŞI - n8n yönetecek")
-    pass
+    """Background'da position manager çalıştır"""
+    try:
+        from position_manager import PositionManager
+        logger.info("📊 Position Manager başlatılıyor...")
+        manager = PositionManager()
+        manager.run(interval_seconds=10)
+    except Exception as e:
+        logger.error(f"❌ Position Manager hatası: {e}")
 
 # FastAPI başlangıcında bot'ları otomatik başlat
 @app.on_event("startup")

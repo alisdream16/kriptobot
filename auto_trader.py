@@ -1,7 +1,6 @@
 """
 KriptoBot - Otomatik Trading Sistemi
-Hibrit AI: Gemini + OpenAI GPT (fallback)
-Sinyaller Telegram'a gönderilir → n8n tetiklenir → Bybit'te işlem açılır
+Gemini AI ile analiz, Bybit API ile işlem
 """
 import time
 import json
@@ -10,15 +9,9 @@ import requests
 import google.generativeai as genai
 from datetime import datetime
 from loguru import logger
+from bybit_api import BybitAPI, BybitTrader
 import config
 import os
-
-# Telegram Bot Token (n8n'e mesaj göndermek için)
-TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN", "8513037447:AAFDrByRG2tv8FxcOf9JRDjMxDU2wzgUZXY")
-TELEGRAM_CHAT_ID = os.getenv("TELEGRAM_CHAT_ID", "1218598281")  # Ali Baran'ın chat ID'si
-
-# OpenAI API Key (Gemini fallback için)
-OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "")
 
 # Gemini AI kurulumu
 genai.configure(api_key=config.GEMINI_API_KEY)
@@ -28,47 +21,14 @@ gemini_model = genai.GenerativeModel(config.GEMINI_MODEL)
 logger.add("auto_trader.log", rotation="1 day", retention="7 days")
 
 class AutoTrader:
-    """Gemini AI ile otomatik trading - Sinyaller Telegram'a gönderilir"""
+    """Gemini AI ile otomatik trading - Doğrudan Bybit API"""
     
     def __init__(self):
+        self.api = BybitAPI()
+        self.trader = BybitTrader()
         self.trading_pairs = config.TRADING_PAIRS[:20]  # İlk 20 parite
         self.max_open_positions = 5  # Maksimum açık pozisyon
         self.last_analysis = {}
-        self.open_signals = []  # Açık sinyaller (n8n'e gönderilen)
-    
-    def send_telegram_signal(self, symbol: str, side: str, entry: float, sl: float, tp: float, confidence: int, reason: str) -> bool:
-        """n8n'e sinyal gönder (Telegram üzerinden)"""
-        try:
-            if not TELEGRAM_CHAT_ID:
-                logger.warning("⚠️ TELEGRAM_CHAT_ID ayarlanmamış!")
-                return False
-            
-            # n8n'in beklediği format
-            message = f"""{symbol} {side}
-Entry: {entry}
-SL: {sl}
-TP: {tp}
-Leverage: {config.LEVERAGE}x"""
-            
-            url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage"
-            payload = {
-                "chat_id": TELEGRAM_CHAT_ID,
-                "text": message,
-                "parse_mode": "HTML"
-            }
-            
-            response = requests.post(url, json=payload, timeout=10)
-            
-            if response.status_code == 200:
-                logger.success(f"✅ Telegram'a sinyal gönderildi: {side} {symbol}")
-                return True
-            else:
-                logger.error(f"❌ Telegram hatası: {response.text}")
-                return False
-                
-        except Exception as e:
-            logger.error(f"❌ Telegram gönderim hatası: {e}")
-            return False
     
     def get_market_data(self, symbol: str) -> dict:
         """Piyasa verilerini al (Public API - imza gerektirmez)"""
@@ -146,7 +106,7 @@ YANIT FORMATI (sadece JSON, başka bir şey yazma):
 """
         
         try:
-            response = model.generate_content(prompt)
+            response = gemini_model.generate_content(prompt)
             text = response.text.strip()
             
             # JSON parse
@@ -163,16 +123,25 @@ YANIT FORMATI (sadece JSON, başka bir şey yazma):
             return {"signals": [], "market_sentiment": "neutral", "analysis_summary": "Analiz yapılamadı"}
     
     def execute_signals(self, analysis: dict):
-        """Sinyalleri Telegram'a gönder → n8n tetiklenir → Bybit'te işlem açılır"""
+        """Sinyalleri Bybit'te işleme al"""
         signals = analysis.get('signals', [])
         
         if not signals:
             logger.info("📭 Sinyal yok, işlem açılmadı")
             return
         
-        # Açık sinyal kontrolü
-        if len(self.open_signals) >= self.max_open_positions:
-            logger.warning(f"⚠️ Maksimum sinyal sayısına ulaşıldı ({self.max_open_positions})")
+        # Mevcut pozisyonları kontrol et
+        current_positions = self.trader.get_all_positions()
+        open_symbols = [p['symbol'] for p in current_positions]
+        
+        if len(current_positions) >= self.max_open_positions:
+            logger.warning(f"⚠️ Maksimum pozisyon sayısına ulaşıldı ({self.max_open_positions})")
+            return
+        
+        # Bakiye kontrol
+        balance = self.trader.get_available_balance()
+        if balance < 5:
+            logger.warning(f"⚠️ Yetersiz bakiye: {balance} USDT")
             return
         
         for signal in signals:
@@ -188,12 +157,12 @@ YANIT FORMATI (sadece JSON, başka bir şey yazma):
                 logger.info(f"⏭️ {symbol} atlandı - düşük güven: {confidence}")
                 continue
             
-            if symbol in self.open_signals:
-                logger.info(f"⏭️ {symbol} atlandı - zaten sinyal gönderildi")
+            if symbol in open_symbols:
+                logger.info(f"⏭️ {symbol} atlandı - zaten açık pozisyon var")
                 continue
             
-            # Fiyat al (Public API)
-            price = self.get_current_price(symbol)
+            # Fiyat al
+            price = self.trader.get_current_price(symbol)
             if price == 0:
                 continue
             
@@ -214,6 +183,9 @@ YANIT FORMATI (sadece JSON, başka bir şey yazma):
                 stop_loss = round(price * (1 + sl_percent/100), decimals)
                 take_profit = round(price * (1 - tp_percent/100), decimals)
             
+            # Pozisyon büyüklüğü - config'den (%4)
+            position_size = balance * (config.RISK_PERCENTAGE / 100)
+            
             logger.info(f"""
 🎯 SİNYAL ALINDI:
    Parite: {symbol}
@@ -225,38 +197,26 @@ YANIT FORMATI (sadece JSON, başka bir şey yazma):
    Sebep: {reason}
 """)
             
-            # Telegram'a sinyal gönder (n8n tetiklenecek)
-            success = self.send_telegram_signal(
-                symbol=symbol,
-                side=side,
-                entry=price,
-                sl=stop_loss,
-                tp=take_profit,
-                confidence=confidence,
-                reason=reason
-            )
+            # İşlem aç
+            try:
+                result = self.trader.open_trade(
+                    symbol=symbol,
+                    side=side,
+                    usdt_amount=position_size,
+                    stop_loss=stop_loss,
+                    take_profit=take_profit
+                )
+                
+                if result.get('success'):
+                    logger.success(f"✅ {symbol} {side} POZİSYON AÇILDI!")
+                else:
+                    logger.error(f"❌ {symbol} işlem hatası: {result.get('error')}")
+                    
+            except Exception as e:
+                logger.error(f"❌ İşlem hatası {symbol}: {e}")
             
-            if success:
-                self.open_signals.append(symbol)
-                logger.success(f"✅ {symbol} {side} SİNYALİ TELEGRAM'A GÖNDERİLDİ!")
-            else:
-                logger.error(f"❌ {symbol} sinyal gönderilemedi")
-            
-            # Çok hızlı mesaj göndermemek için bekle
+            # Çok hızlı işlem açmamak için bekle
             time.sleep(1)
-    
-    def get_current_price(self, symbol: str) -> float:
-        """Güncel fiyatı al (Public API)"""
-        try:
-            url = f"https://api.bybit.com/v5/market/tickers?category=linear&symbol={symbol}"
-            response = requests.get(url, timeout=10)
-            data = response.json()
-            
-            if data.get('retCode') == 0 and data.get('result', {}).get('list'):
-                return float(data['result']['list'][0]['lastPrice'])
-            return 0
-        except:
-            return 0
     
     def run_analysis(self):
         """Ana analiz döngüsü"""
@@ -280,45 +240,43 @@ YANIT FORMATI (sadece JSON, başka bir şey yazma):
         logger.info(f"📝 Özet: {analysis.get('analysis_summary', 'N/A')}")
         logger.info(f"🎯 Sinyal Sayısı: {len(analysis.get('signals', []))}")
         
-        # Sinyalleri Telegram'a gönder (n8n tetiklenecek)
+        # Sinyalleri işle
         self.execute_signals(analysis)
         
-        # Gönderilen sinyalleri göster
-        if self.open_signals:
-            logger.info(f"\n📋 GÖNDERİLEN SİNYALLER ({len(self.open_signals)}):")
-            for sig in self.open_signals:
-                logger.info(f"   📤 {sig}")
+        # Mevcut pozisyonları göster
+        positions = self.trader.get_all_positions()
+        if positions:
+            logger.info(f"\n📋 AÇIK POZİSYONLAR ({len(positions)}):")
+            for pos in positions:
+                pnl = float(pos['unrealized_pnl'])
+                pnl_str = f"+{pnl:.2f}" if pnl >= 0 else f"{pnl:.2f}"
+                logger.info(f"   {pos['symbol']} | {pos['side']} | PnL: {pnl_str} USDT")
         
         logger.info("=" * 50)
         logger.info(f"✅ ANALİZ TAMAMLANDI - Sonraki: 1 saat sonra")
         logger.info("=" * 50 + "\n")
     
-    def has_open_signals(self) -> bool:
-        """Açık sinyal var mı kontrol et"""
-        return len(self.open_signals) > 0
-    
-    def clear_signals(self):
-        """Sinyalleri temizle (manuel çağrılabilir)"""
-        self.open_signals = []
-        logger.info("🗑️ Sinyal listesi temizlendi")
+    def has_open_positions(self) -> bool:
+        """Açık pozisyon var mı kontrol et"""
+        positions = self.trader.get_all_positions()
+        return len(positions) > 0
     
     def start(self):
         """Botu başlat"""
         logger.info("""
 ╔══════════════════════════════════════════════════════════╗
-║          🤖 KRİPTOBOT - TELEGRAM → N8N → BYBIT          ║
+║          🤖 KRİPTOBOT - OTOMATİK TRADER                 ║
 ║          Gemini AI ile Akıllı Trading                    ║
 ║                                                          ║
-║  📤 Sinyal → Telegram → n8n → Bybit işlem               ║
-║  ⏰ Her 15 dakikada analiz                               ║
+║  📭 Pozisyon yoksa: Her 15 dakikada analiz              ║
+║  📊 Pozisyon varsa: Her saat analiz                     ║
 ╚══════════════════════════════════════════════════════════╝
 """)
         
+        # Bakiye kontrol
+        balance = self.trader.get_available_balance()
+        logger.info(f"💰 Başlangıç Bakiyesi: {balance} USDT")
         logger.info(f"📊 İzlenen Parite: {len(self.trading_pairs)}")
-        logger.info(f"📤 Telegram Chat ID: {TELEGRAM_CHAT_ID or 'AYARLANMADI!'}")
-        
-        if not TELEGRAM_CHAT_ID:
-            logger.error("⚠️ TELEGRAM_CHAT_ID ayarlanmamış! .env dosyasına ekle.")
         
         # İlk analizi hemen yap
         logger.info("\n🚀 İlk analiz başlatılıyor...\n")
@@ -329,20 +287,30 @@ YANIT FORMATI (sadece JSON, başka bir şey yazma):
         
         # Son analiz zamanı
         last_analysis_time = time.time()
+        had_position = False
         
         # Döngü
         logger.info("⏳ Zamanlayıcı aktif")
         while True:
             schedule.run_pending()
             
-            # Açık sinyal yoksa her 15 dakikada analiz
-            if not self.has_open_signals():
-                if time.time() - last_analysis_time >= 900:  # 15 dakika
+            has_position_now = self.has_open_positions()
+            
+            # Açık pozisyon yoksa her 15 dakikada analiz
+            if not has_position_now:
+                # Pozisyon yeni kapandıysa hemen analiz yap
+                if had_position:
+                    logger.info("\n🔄 Pozisyon kapandı - Hemen yeni analiz başlatılıyor...")
+                    self.run_analysis()
+                    last_analysis_time = time.time()
+                # Normal 15 dakika kontrolü
+                elif time.time() - last_analysis_time >= 900:
                     logger.info("\n⏰ 15 dakika geçti - Analiz başlatılıyor...")
                     self.run_analysis()
                     last_analysis_time = time.time()
             
-            time.sleep(60)  # Her dakika kontrol
+            had_position = has_position_now
+            time.sleep(60)
 
 
 def main():

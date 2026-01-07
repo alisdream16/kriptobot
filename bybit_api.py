@@ -53,7 +53,9 @@ class BybitAPI:
             'X-BAPI-TIMESTAMP': timestamp,
             'X-BAPI-SIGN': signature,
             'X-BAPI-RECV-WINDOW': self.recv_window,
-            'Content-Type': 'application/json'
+            'Content-Type': 'application/json',
+            'User-Agent': 'Official-SDKs',
+            'x-referer': 'KriptoBot'
         }
         
         url = f"{self.base_url}{endpoint}"
