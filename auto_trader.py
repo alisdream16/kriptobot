@@ -13,7 +13,7 @@ import config
 
 # Gemini AI kurulumu
 genai.configure(api_key=config.GEMINI_API_KEY)
-model = genai.GenerativeModel('gemini-2.5-flash-lite')
+model = genai.GenerativeModel(config.GEMINI_MODEL)
 
 # Logger ayarla
 logger.add("auto_trader.log", rotation="1 day", retention="7 days")
@@ -159,13 +159,22 @@ YANIT FORMATI (sadece JSON, başka bir şey yazma):
             if price == 0:
                 continue
             
-            # SL/TP hesapla
-            if side == 'LONG':
-                stop_loss = round(price * (1 - sl_percent/100), 2)
-                take_profit = round(price * (1 + tp_percent/100), 2)
+            # SL/TP hesapla - fiyata göre decimal belirle
+            if price < 1:
+                decimals = 5
+            elif price < 10:
+                decimals = 4
+            elif price < 100:
+                decimals = 3
             else:
-                stop_loss = round(price * (1 + sl_percent/100), 2)
-                take_profit = round(price * (1 - tp_percent/100), 2)
+                decimals = 2
+            
+            if side == 'LONG':
+                stop_loss = round(price * (1 - sl_percent/100), decimals)
+                take_profit = round(price * (1 + tp_percent/100), decimals)
+            else:
+                stop_loss = round(price * (1 + sl_percent/100), decimals)
+                take_profit = round(price * (1 - tp_percent/100), decimals)
             
             # Pozisyon büyüklüğü - config'den (%4)
             position_size = balance * (config.RISK_PERCENTAGE / 100)
@@ -280,22 +289,30 @@ YANIT FORMATI (sadece JSON, başka bir şey yazma):
         schedule.every().hour.at(":00").do(self.run_analysis)
         
         # Son analiz zamanı
-        last_no_position_check = time.time()
+        last_analysis_time = time.time()  # Son analiz zamanı
+        had_position = False  # Önceki durumda pozisyon var mıydı?
         
         # Döngü
         logger.info("⏳ Zamanlayıcı aktif")
         while True:
             schedule.run_pending()
             
+            has_position_now = self.has_open_positions()
+            
             # Açık pozisyon yoksa her 15 dakikada analiz
-            if not self.has_open_positions():
-                if time.time() - last_no_position_check >= 900:  # 15 dakika = 900 saniye
+            if not has_position_now:
+                # Eğer pozisyon yeni kapandıysa, hemen analiz yap
+                if had_position:
+                    logger.info("\n🔄 Pozisyon kapandı - Hemen yeni analiz başlatılıyor...")
+                    self.run_analysis()
+                    last_analysis_time = time.time()
+                # Normal 15 dakika kontrolü
+                elif time.time() - last_analysis_time >= 900:  # 15 dakika = 900 saniye
                     logger.info("\n⏰ 15 dakika geçti, pozisyon yok - Analiz başlatılıyor...")
                     self.run_analysis()
-                    last_no_position_check = time.time()
-            else:
-                # Pozisyon varsa timer'ı sıfırla
-                last_no_position_check = time.time()
+                    last_analysis_time = time.time()
+            
+            had_position = has_position_now
             
             time.sleep(60)  # Her dakika kontrol
 

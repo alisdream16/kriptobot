@@ -1,5 +1,6 @@
 """
 Kripto Trading Bot - Yapılandırma Dosyası
+API key'ler .env dosyasından okunur (güvenlik için)
 """
 import os
 from dotenv import load_dotenv
@@ -7,20 +8,20 @@ from dotenv import load_dotenv
 load_dotenv()
 
 # ==================== BYBIT API ====================
-BYBIT_API_KEY = "NdLbjwjnMhkzkeyjdQ"
-BYBIT_API_SECRET = "fOtnTlaFk6frzihzS9msBVqXTzdpX08Ww3en"
+BYBIT_API_KEY = os.getenv("BYBIT_API_KEY", "")
+BYBIT_API_SECRET = os.getenv("BYBIT_API_SECRET", "")
 BYBIT_BASE_URL = "https://api.bybit.com"
 
 # ==================== LBANK API (Spot için) ====================
-LBANK_API_KEY = "f40dd424-0453-4aff-abd1-19e4874ac01c"
-LBANK_SECRET_KEY = "F8C97FD1151A2C0CC73B57699F6B5D18"
+LBANK_API_KEY = os.getenv("LBANK_API_KEY", "")
+LBANK_SECRET_KEY = os.getenv("LBANK_SECRET_KEY", "")
 LBANK_BASE_URL = "https://api.lbank.info"
 LBANK_FUTURES_URL = "https://fapi.lbank.info"
 
 # ==================== TELEGRAM ====================
-TELEGRAM_API_ID = "30699278"
-TELEGRAM_API_HASH = "414fce59162a6c4cd114e8d4397ec896"
-TELEGRAM_PHONE = "+905384877162"
+TELEGRAM_API_ID = os.getenv("TELEGRAM_API_ID", "")
+TELEGRAM_API_HASH = os.getenv("TELEGRAM_API_HASH", "")
+TELEGRAM_PHONE = os.getenv("TELEGRAM_PHONE", "")
 TELEGRAM_PASSWORD = ""  # 2FA şifren varsa buraya yaz
 
 # İzlenecek kanallar (t.me/ linkinden sonraki kısım)
@@ -31,11 +32,11 @@ TELEGRAM_CHANNELS = [
 ]
 
 # ==================== GEMINI AI ====================
-GEMINI_API_KEY = "AIzaSyBo83RBvYCJbKahS0l3qBJ7RAr2XCxOVxE"
-GEMINI_MODEL = "gemini-1.5-flash"
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "")
+GEMINI_MODEL = "gemini-2.5-flash"
 
 # ==================== SUPABASE ====================
-SUPABASE_URL = "postgresql://postgres.ldimzjflhvtpeqacbjcm:KriptoBot16@aws-1-ap-south-1.pooler.supabase.com:5432/postgres"
+SUPABASE_URL = os.getenv("SUPABASE_URL", "")
 
 # ==================== TİCARET AYARLARI ====================
 # İşlem yapılacak pariteler (60 parite - Bybit destekli)

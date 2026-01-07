@@ -343,26 +343,69 @@ async def close_all_positions(payload: dict = Depends(verify_token)):
 
 # ==================== AUTO TRADER ====================
 import threading
+from loguru import logger
+
 auto_trader_running = False
 auto_trader_thread = None
+position_manager_thread = None
 
 def run_auto_trader_background():
     """Background'da auto trader çalıştır"""
-    from auto_trader import AutoTrader
-    trader = AutoTrader()
-    trader.start()
+    global auto_trader_running
+    try:
+        from auto_trader import AutoTrader
+        logger.info("🤖 Auto Trader başlatılıyor...")
+        trader = AutoTrader()
+        auto_trader_running = True
+        trader.start()
+    except Exception as e:
+        logger.error(f"❌ Auto Trader hatası: {e}")
+        auto_trader_running = False
+
+def run_position_manager_background():
+    """Background'da position manager çalıştır"""
+    try:
+        from position_manager import PositionManager
+        logger.info("📊 Position Manager başlatılıyor...")
+        manager = PositionManager()
+        manager.run(interval_seconds=10)
+    except Exception as e:
+        logger.error(f"❌ Position Manager hatası: {e}")
+
+# FastAPI başlangıcında bot'ları otomatik başlat
+@app.on_event("startup")
+async def startup_event():
+    """Uygulama başladığında bot'ları başlat"""
+    global auto_trader_thread, position_manager_thread, auto_trader_running
+    
+    logger.info("=" * 60)
+    logger.info("🚀 KRİPTOBOT BAŞLATILIYOR...")
+    logger.info("=" * 60)
+    
+    # Position Manager başlat
+    position_manager_thread = threading.Thread(target=run_position_manager_background, daemon=True)
+    position_manager_thread.start()
+    logger.info("✅ Position Manager başlatıldı")
+    
+    # Auto Trader başlat
+    auto_trader_thread = threading.Thread(target=run_auto_trader_background, daemon=True)
+    auto_trader_thread.start()
+    logger.info("✅ Auto Trader başlatıldı")
+    
+    logger.info("=" * 60)
+    logger.info("🟢 Tüm servisler aktif!")
+    logger.info("=" * 60)
 
 @app.post("/api/auto-trader/start")
 async def start_auto_trader(payload: dict = Depends(verify_token)):
-    """Otomatik trader'ı başlat"""
+    """Otomatik trader'ı başlat (zaten startup'ta başlıyor)"""
     global auto_trader_running, auto_trader_thread
     
     if auto_trader_running:
-        return {"success": False, "message": "Auto trader zaten çalışıyor"}
+        return {"success": True, "message": "Auto trader zaten çalışıyor"}
     
     auto_trader_thread = threading.Thread(target=run_auto_trader_background, daemon=True)
     auto_trader_thread.start()
-    auto_trader_running = True
     
     return {"success": True, "message": "Auto trader başlatıldı"}
 
