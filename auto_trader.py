@@ -15,7 +15,7 @@ import os
 
 # Telegram Bot Token (n8n'e mesaj göndermek için)
 TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN", "8513037447:AAFDrByRG2tv8FxcOf9JRDjMxDU2wzgUZXY")
-TELEGRAM_CHAT_ID = os.getenv("TELEGRAM_CHAT_ID", "")  # n8n'in dinlediği chat ID
+TELEGRAM_CHAT_ID = os.getenv("TELEGRAM_CHAT_ID", "1218598281")  # Ali Baran'ın chat ID'si
 
 # Gemini AI kurulumu
 genai.configure(api_key=config.GEMINI_API_KEY)
