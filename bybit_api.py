@@ -18,7 +18,8 @@ class BybitAPI:
     def __init__(self):
         self.api_key = config.BYBIT_API_KEY
         self.api_secret = config.BYBIT_API_SECRET
-        self.base_url = "https://api.bybit.com"
+        # Bybit alternatif endpoint (geo-blocking için)
+        self.base_url = "https://api.bytick.com"
         self.recv_window = "5000"
         self.session = requests.Session()
     
