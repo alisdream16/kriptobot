@@ -1,6 +1,6 @@
 """
 KriptoBot - Otomatik Trading Sistemi
-Her saat Gemini AI analizi yaparak işlem açar
+Hibrit AI: Gemini + OpenAI GPT (fallback)
 Sinyaller Telegram'a gönderilir → n8n tetiklenir → Bybit'te işlem açılır
 """
 import time
@@ -17,9 +17,12 @@ import os
 TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN", "8513037447:AAFDrByRG2tv8FxcOf9JRDjMxDU2wzgUZXY")
 TELEGRAM_CHAT_ID = os.getenv("TELEGRAM_CHAT_ID", "1218598281")  # Ali Baran'ın chat ID'si
 
+# OpenAI API Key (Gemini fallback için)
+OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "")
+
 # Gemini AI kurulumu
 genai.configure(api_key=config.GEMINI_API_KEY)
-model = genai.GenerativeModel(config.GEMINI_MODEL)
+gemini_model = genai.GenerativeModel(config.GEMINI_MODEL)
 
 # Logger ayarla
 logger.add("auto_trader.log", rotation="1 day", retention="7 days")
@@ -40,16 +43,12 @@ class AutoTrader:
                 logger.warning("⚠️ TELEGRAM_CHAT_ID ayarlanmamış!")
                 return False
             
-            # n8n'in anlayacağı format
-            message = f"""🤖 KRIPTOBOT SİNYAL
-
-{side} {symbol}
+            # n8n'in beklediği format
+            message = f"""{symbol} {side}
 Entry: {entry}
 SL: {sl}
 TP: {tp}
-Leverage: {config.LEVERAGE}
-Confidence: {confidence}/10
-Reason: {reason}"""
+Leverage: {config.LEVERAGE}x"""
             
             url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage"
             payload = {
